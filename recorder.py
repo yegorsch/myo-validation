@@ -6,7 +6,7 @@ import myo
 import numpy as np
 import scipy.signal as sp
 from matplotlib import pyplot as plt
-from pick import pick
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 
 class EmgCollector(myo.DeviceListener):
 
@@ -55,10 +55,32 @@ def record(points_number, hub, filename="name.csv"):
                 np.savetxt(filename, emg_data, delimiter=",")
                 print("Recorded successfully")
                 return emg_data
+def filter(emg):
+    N = len(emg)
+    wind_size = 40
+    i_start = range(1, N - wind_size)
+    i_stop = range(wind_size, N)
+    EMG_av = np.zeros((N - wind_size, 8))
+    for i in range(N - 5 - wind_size):
+        sample = np.mean(emg[i_start[i]:i_stop[i], :], axis=0)
+        EMG_av[i, :] = sample
+    return EMG_av
+
+def preprocess(emg):
+    emg = np.abs(emg)
+    filtered_emg = filter(emg)
+    return filtered_emg
+
+def preprocess_recordings(recorded_data, labels):
+    y_trains = {}
+    for gesture_name, gesture_data in recorded_data.items():
+        recorded_data[gesture_name] = preprocess(gesture_data)
+        y_trains[gesture_name] = np.array([labels[gesture_name]] * len(recorded_data)) # assigning y-labels to a gesture for LDA
+
 
 
 def process_data(recorded_data):
-    pass
+    preprocess_recordings(recorded_data)
 
 
 def main():
@@ -68,6 +90,8 @@ def main():
     options = "1. Record gesture \n2. Process and exit \n3. Exit \n ->"
 
     recorded_data = {}
+    labels = {}
+    y = 0
     while True:
         choice = int(raw_input(options))
         if choice == 1:
@@ -79,25 +103,15 @@ def main():
                 countdown(5)
                 emg_data = record(points_number, hub, filename=filename)
                 recorded_data[gesture_name] = emg_data
+                labels[gesture_name] = y
+                y += 1
                 plt.plot(emg_data)
                 plt.show()
         elif choice == 2:
-            process_data(recorded_data)
+            process_data(recorded_data, labels)
             return
         else:
             return
-
-
-    # listener = EmgCollector(40)
-    # root = Tk()
-    #
-    # text_window = TextWindow(root)
-    #
-    # circle_window = CircleWindow(root)
-    #
-    # with hub.run_in_background(listener.on_event):
-    #     App(listener, classifier=Classifier("Models/model_5.sav"), regressor=Regressor("Models/rbf.sav"),
-    #         reg_plot=False, emg_plot=False).main(root, text_window, circle_window)
 
 
 if __name__ == '__main__':
