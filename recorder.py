@@ -1,10 +1,8 @@
-from Tkinter import *
 from collections import deque
 from threading import Lock
 import time
 import myo
 import numpy as np
-import scipy.signal as sp
 from matplotlib import pyplot as plt
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 from sklearn.linear_model import LogisticRegression
@@ -29,8 +27,6 @@ class EmgCollector(myo.DeviceListener):
     def on_emg(self, event):
         with self.lock:
             self.emg_data_queue.append((event.timestamp, event.emg))
-
-
 
 
 def countdown(t):
@@ -73,7 +69,7 @@ def filter(emg):
 def preprocess(emg):
     emg = np.abs(emg)
     filtered_emg = filter(emg)
-    return filtered_emg
+    return emg
 
 def process_recordings(recorded_data, labels):
     y_trains = {}
@@ -112,7 +108,7 @@ def process_recordings(recorded_data, labels):
         scores_lda.append(lda_score)
         names_lda.append(key + "\n%.3f" % lda_score)
         names_log.append(key + "\n%.3f" % log_score)
-
+    # Plotting
     y_pos = np.arange(len(names_log))
     plt.bar(y_pos, scores_lda, align='center', alpha=0.5)
     plt.xticks(y_pos, names_lda)
@@ -134,7 +130,7 @@ def main():
     recorded_data = {}
     labels = {}
     y = 0
-    points_number = 2000
+    points_number = 1000
     while True:
         choice = int(raw_input(options))
         if choice == 1:
