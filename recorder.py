@@ -1,7 +1,12 @@
 from collections import deque
 from threading import Lock
+import csv
+import pandas as pd
+import os
+import fnmatch
 import time
 import myo
+import pickle
 import numpy as np
 from matplotlib import pyplot as plt
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
@@ -69,9 +74,9 @@ def filter(emg):
 def preprocess(emg):
     emg = np.abs(emg)
     filtered_emg = filter(emg)
-    return emg
+    return filtered_emg
 
-def process_recordings(recorded_data, labels):
+def training(recorded_data, labels):
     y_trains = {}
     test_data = {}
     X_train = []
@@ -84,7 +89,7 @@ def process_recordings(recorded_data, labels):
         y = np.array([labels[gesture_name]] * len(processed_emg)) # assigning y-labels to a gesture for LDA
         y_trains[gesture_name] = y
         # splitting x and y into train and test set
-        X_train_gesture, X_test_gesture, y_train_gesture, y_test_gesture = train_test_split(processed_emg, y, test_size=0.4, random_state=0)
+        X_train_gesture, X_test_gesture, y_train_gesture, y_test_gesture = train_test_split(processed_emg, y, test_size=0.2, random_state=0)
         X_train.extend(X_train_gesture)
         y_train.extend(y_train_gesture)
         test_data[gesture_name] = (X_test_gesture, y_test_gesture)
@@ -95,6 +100,10 @@ def process_recordings(recorded_data, labels):
     logistic_regression = LogisticRegression(random_state=0, solver='lbfgs', multi_class='multinomial') if len(recorded_data.items()) >= 2 else lda
     lda.fit(X_train, y_train)
     logistic_regression.fit(X_train, y_train)
+
+    return test_data, logistic_regression, lda
+
+def process_recordings(test_data,logistic_regression,lda):
 
     #Cross validation
     scores_lda = []
@@ -122,21 +131,59 @@ def process_recordings(recorded_data, labels):
     plt.title('Gesture Logistic Regression')
     plt.show()
 
-def main():
-    myo.init(sdk_path='/Users/egor/Documents/University/myo_sdk')
+    # Total performance among LDA and Logistic
+    avg_algvals = []
+    avg_names = []
+    avg_algvals.append(sum(scores_lda) / float(len(scores_lda)))
+    avg_algvals.append(sum(scores_log) / float(len(scores_log)))
+    avg_names.append("LDA \n%.5f" % avg_algvals[0])
+    avg_names.append("LOG \n%.5f" % avg_algvals[1])
 
-    options = "1. Record gesture \n2. Process and exit \n3. Exit \n->"
+    plt.bar([1,2], avg_algvals, align='center', alpha=0.5)
+    plt.xticks([1,2], avg_names)
+    plt.ylabel('Score')
+    plt.title('Gesture Logistic Regression')
+    plt.show()
+
+def createModel(model_name,points_number):
+    logname = model_name + "_logistic.sav"
+    ldaname = model_name + "_lda.sav"
+    read_data, readLabels = parseFiles(points_number)
+    res2 = training(read_data, readLabels)
+    pickle.dump(res2[1], open(logname, 'wb'), protocol=2)
+    pickle.dump(res2[2], open(ldaname, 'wb'), protocol=2)
+
+def parseFiles(points_number):
+    listOfFiles = os.listdir('.')
+    pattern = "*.csv"
+    k = 0
+    readLabels = {}
+    read_data = {}
+    for entry in listOfFiles:
+        if fnmatch.fnmatch(entry, pattern):
+            gest_name = entry.split("_")[0]
+            dataset = pd.read_csv(entry)
+            readLabels[gest_name] = k
+            k += 1
+            read_data[gest_name] = dataset.values[:points_number]
+            # print(dataset.values[:points_number])
+    return read_data, readLabels
+
+def main():
+    myo.init(sdk_path='C:/Users/Dinmukhammed/Desktop/MYO/myo-sdk-win-0.9.0')
+
+    options = "\n1. Record gesture \n2. Process and exit \n3. Show and train prerecorded data. \n4. Save models. \n5. Exit. \n->"
 
     recorded_data = {}
     labels = {}
     y = 0
     points_number = 1000
     while True:
-        choice = int(raw_input(options))
+        choice = int(input(options))
         if choice == 1:
-            gesture_name = str(raw_input("Please enter gesture name \n ->"))
+            gesture_name = str(input("Please enter gesture name \n ->"))
             filename = generate_filename(gesture_name, points_number)
-            proceed = int(raw_input("File name is " + filename + " \n You will have 3 seconds to prepare. Ready? [1 - Yes/ 0 - No] \n ->"))
+            proceed = int(input("File name is " + filename + " \n You will have 3 seconds to prepare. Ready? [1 - Yes/ 0 - No] \n ->"))
             if proceed == 1:
                 countdown(3)
                 emg_data = record(points_number, myo, filename=filename)
@@ -146,7 +193,17 @@ def main():
                 plt.plot(emg_data)
                 plt.show()
         elif choice == 2:
-            process_recordings(recorded_data, labels)
+            res = training(recorded_data, labels)
+            process_recordings(res[0], res[1], res[2])
+
+        elif choice == 3:
+            res = parseFiles(points_number)
+            res2 = training(res[0], res[1])
+            process_recordings(res2[0], res2[1], res2[2])
+
+        elif choice == 4:
+            model_name = str(input("Please enter model name \n ->"))
+            createModel(model_name, points_number)
         else:
             return
 
