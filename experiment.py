@@ -56,10 +56,10 @@ class Experiment:
         # Cross validation
         pass
 
-    def preprocess(self, emg):
+    def preprocess(self):
         for key, emg in self.data.items():
             emg = np.abs(emg)
-            filtered_emg = filter(emg)
+            filtered_emg = self.filter(emg)
             self.data[key] = filtered_emg
 
     def train(self):
@@ -81,18 +81,13 @@ class Experiment:
         # Models
         X_train = np.array(X_train)
         y_train = np.array(y_train)
-        shuffled_data = np.append(X_train, y_train, axis=1)
+        shuffled_data = np.column_stack((X_train, y_train))
         np.random.shuffle(shuffled_data)
         y_train = shuffled_data[:, -1].copy()
         X_train = np.delete(shuffled_data, -1, axis=1)
 
         self.lda.fit(X_train, y_train)
         self.log_reg.fit(X_train, y_train)
-
-    def preprocess(self, emg):
-        emg = np.abs(emg)
-        filtered_emg = filter(emg)
-        return filtered_emg
 
     def filter(self, emg):
         N = len(emg)

@@ -1,17 +1,13 @@
-from collections import deque
-from threading import Lock
-import csv
+
 import pandas as pd
 import os
 import fnmatch
 import time
 import myo
-import pickle
+
 import numpy as np
 from matplotlib import pyplot as plt
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split
+
 from collector import EmgCollector
 from experiment import Experiment
 
@@ -70,7 +66,7 @@ def parseFiles(points_number):
     return read_data, readLabels
 
 def main():
-    myo.init(sdk_path='C:/Users/Dinmukhammed/Desktop/MYO/myo-sdk-win-0.9.0')
+    myo.init(sdk_path='/Users/egor/Documents/University/myo_sdk')
 
     options = "\n1. Record gesture \n2. Process and exit \n3. Show and train prerecorded data. \n4. Save models. \n5. Exit. \n->"
 
@@ -81,7 +77,7 @@ def main():
     while True:
         choice = int(input(options))
         if choice == 1:
-            gesture_name = str(input("Please enter gesture name \n ->"))
+            gesture_name = str(raw_input("Please enter gesture name \n ->"))
             filename = generate_filename(gesture_name, points_number)
             proceed = int(input("File name is " + filename + " \n You will have 3 seconds to prepare. Ready? [1 - Yes/ 0 - No] \n ->"))
             if proceed == 1:
