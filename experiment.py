@@ -17,10 +17,10 @@ class Experiment:
         """
         :param lda: LDA model for training
         :param log_reg: Logistic regression model for training
-        :param wind_size: Window size for filtering
-        :param test_size: (0,1) value for test size
-        :param data: {"palm_left":raw_numpy_array}
-        :param labels: {"palm_left": int_class }
+        :param wind_size: Filtering window constant
+        :param test_size: (0,1) value for test set size
+        :param data: e.g. {"palm_left": raw_numpy_array}
+        :param labels: e.g.  {"palm_left": 0 }
         """
 
         # Parameters
@@ -62,7 +62,7 @@ class Experiment:
             filtered_emg = self.filter(emg)
             self.data[key] = filtered_emg
 
-    def train(self):
+    def train(self, shuffle=False):
         y_trains = {}
         test_data = {}
         X_train = []
@@ -81,10 +81,11 @@ class Experiment:
         # Models
         X_train = np.array(X_train)
         y_train = np.array(y_train)
-        shuffled_data = np.column_stack((X_train, y_train))
-        np.random.shuffle(shuffled_data)
-        y_train = shuffled_data[:, -1].copy()
-        X_train = np.delete(shuffled_data, -1, axis=1)
+        if shuffle:
+            shuffled_data = np.column_stack((X_train, y_train))
+            np.random.shuffle(shuffled_data)
+            y_train = shuffled_data[:, -1].copy()
+            X_train = np.delete(shuffled_data, -1, axis=1)
 
         self.lda.fit(X_train, y_train)
         self.log_reg.fit(X_train, y_train)

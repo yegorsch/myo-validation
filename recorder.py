@@ -4,7 +4,6 @@ import os
 import fnmatch
 import time
 import myo
-
 import numpy as np
 from matplotlib import pyplot as plt
 
