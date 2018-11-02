@@ -61,7 +61,6 @@ def parseFiles(points_number):
             readLabels[gest_name] = k
             k += 1
             read_data[gest_name] = dataset.values[:points_number]
-            # print(dataset.values[:points_number])
     return read_data, readLabels
 
 def main():
@@ -90,18 +89,67 @@ def main():
         elif choice == 2:
             exp = Experiment(data=recorded_data, labels=labels)
             exp.run()
-            exp.scores()
+            exp.scores
         elif choice == 3:
             res = parseFiles(points_number)
-            exp = Experiment(data=res[0], labels=res[1])
-            exp.run()
-            exp.scores()
+            plot_results(res)
         elif choice == 4: # save model
             # model_name = str(input("Please enter model name \n ->"))
             # createModel(model_name, points_number)
             continue
         else:
             return
+
+def plot_results(res):
+
+    X = res[0]
+    y = res[1]
+
+    plt.figure(figsize=(15,50))
+    train_split_vals = np.linspace(0.1, 0.90, 15)
+
+    for i, train_split in enumerate(train_split_vals):
+        exp = Experiment(data=X, labels=y, test_size=train_split, wind_size=5)
+        exp.run()
+        scores = exp.scores["gestures"]
+        names = scores.keys()
+        results = scores.values()
+        plt.subplot(len(train_split_vals), 1, i+1)
+        plt.bar(range(len(results)), results, align='center', alpha=0.5)
+        plt.xticks(range(len(names)), names)
+        plt.ylabel('Score')
+        plt.title('Test size %.3f' % train_split + " Avg: %f" % np.average(results) + "Window size: 100")
+    plt.savefig('diff_test_size_winsize30.png')
+    plt.show()
+    finals = []
+    for i, train_split in enumerate(train_split_vals):
+        exp = Experiment(data=X, labels=y, test_size=train_split, wind_size=30)
+        exp.run()
+        scores = exp.scores["gestures"]
+        results = scores.values()
+        finals.append(np.average(results))
+    plt.plot(train_split_vals, finals)
+    plt.ylabel("Score")
+    plt.xlabel("Test split")
+    plt.title("Window size: 30")
+    plt.savefig('relation_winsize30.png')
+    plt.show()
+    lda_res = []
+    log_res = []
+    wind_sizes = np.linspace(5,500, 20)
+    for wind_size in wind_sizes:
+        exp = Experiment(data=X, labels=y, wind_size=wind_size)
+        exp.run()
+        scores = exp.scores["models"]
+        lda_res.append(scores["lda"])
+        log_res.append(scores["log"])
+    plt.plot(wind_sizes, lda_res)
+    plt.ylabel("LDA score")
+    plt.xlabel("Window size")
+    plt.savefig('window_size_vs_score.png')
+    plt.show()
+
+
 
 
 if __name__ == '__main__':
