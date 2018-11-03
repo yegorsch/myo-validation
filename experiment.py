@@ -4,9 +4,10 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.base import clone
+import copy
+
 
 class Experiment:
-
     def __init__(self,
                  data,
                  labels,
@@ -27,17 +28,19 @@ class Experiment:
         self.lda = lda
         self.log_reg = log_reg
         self.cross_lda = clone(lda)
-        self.log_reg = clone(log_reg)
+        self.cross_log_reg = clone(log_reg)
         self.wind_size = wind_size
         self.test_size = test_size
 
         # Data
-        self.data = data
-        self.labels = labels
+        self.data = copy.deepcopy(data)
+        self.labels = copy.deepcopy(labels)
         self.label_name = {v: k for k, v in self.labels.iteritems()}
         self.train_data = None
         self.X_test = None
         self.y_test = None
+        self.X_train = None
+        self.y_train = None
 
         # Scores
         self.scores = {}  # Scores in like {score_name: score_val}
@@ -48,12 +51,13 @@ class Experiment:
         """
         self.preprocess()  # Preprocess and fill test_data and train_data
         self.train()  # Fit the models
-        self.cross_validate()
-        self.train_test_validate()
+        self.cross_validate() # Get cross validation scores
+        self.train_test_validate() # Get individual gesture score
+        self.scores["variables"] = {"test_size": len(self.X_test), "train_size": len(self.X_train)}
 
     def cross_validate(self):
         scoresLda = cross_val_score(self.cross_lda, self.X_test, self.y_test, cv=None, scoring='accuracy')
-        scoresLog = cross_val_score(self.log_reg, self.X_test, self.y_test, cv=None, scoring='accuracy')
+        scoresLog = cross_val_score(self.cross_log_reg, self.X_test, self.y_test, cv=None, scoring='accuracy')
         self.scores["models"] = {"lda": scoresLda.mean(), "log": scoresLog.mean()}
 
     def train_test_validate(self):
@@ -99,22 +103,11 @@ class Experiment:
 
         self.X_test = X_test
         self.y_test = y_test
+        self.X_train = X_train
+        self.y_train = y_train
 
         self.lda.fit(X_train, y_train)
         self.log_reg.fit(X_train, y_train)
-
-    # def filter(self, emg):
-    #     print(len(emg))
-    #     N = len(emg)
-    #     wind_size = self.wind_size
-    #     i_start = range(1, N - wind_size)
-    #     i_stop = range(wind_size, N)
-    #     EMG_av = np.zeros((N, 8))
-    #     for i in range(N - 5 - wind_size):
-    #         sample = np.mean(emg[i_start[i]:i_stop[i], :], axis=0)
-    #         EMG_av[i, :] = sample
-    #     return EMG_av
-
 
     def filter(self, emg):
         rows = int(len(emg) / self.wind_size)

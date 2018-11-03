@@ -1,3 +1,4 @@
+import sys
 
 import pandas as pd
 import os
@@ -6,10 +7,8 @@ import time
 import myo
 import numpy as np
 from matplotlib import pyplot as plt
-
 from collector import EmgCollector
 from experiment import Experiment
-
 
 
 def countdown(t):
@@ -40,6 +39,7 @@ def record(points_number, myo, filename="name.csv"):
             print("Recorded successfully")
             return emg_data
 
+
 # def createModel(model_name,points_number):
 #     logname = model_name + "_logistic.sav"
 #     ldaname = model_name + "_lda.sav"
@@ -63,6 +63,7 @@ def parseFiles(points_number):
             read_data[gest_name] = dataset.values[:points_number]
     return read_data, readLabels
 
+
 def main():
     myo.init(sdk_path='/Users/egor/Documents/University/myo_sdk')
 
@@ -77,7 +78,8 @@ def main():
         if choice == 1:
             gesture_name = str(raw_input("Please enter gesture name \n ->"))
             filename = generate_filename(gesture_name, points_number)
-            proceed = int(input("File name is " + filename + " \n You will have 3 seconds to prepare. Ready? [1 - Yes/ 0 - No] \n ->"))
+            proceed = int(input(
+                "File name is " + filename + " \n You will have 3 seconds to prepare. Ready? [1 - Yes/ 0 - No] \n ->"))
             if proceed == 1:
                 countdown(3)
                 emg_data = record(points_number, myo, filename=filename)
@@ -93,38 +95,62 @@ def main():
         elif choice == 3:
             res = parseFiles(points_number)
             plot_results(res)
-        elif choice == 4: # save model
+        elif choice == 4:  # save model
             # model_name = str(input("Please enter model name \n ->"))
             # createModel(model_name, points_number)
             continue
         else:
             return
 
-def plot_results(res):
 
+def plot_results(res):
     X = res[0]
     y = res[1]
+    train_split_test(X, y)
+    window_size_test(X, y)
 
-    plt.figure(figsize=(15,50))
-    train_split_vals = np.linspace(0.1, 0.90, 15)
 
+def train_split_test(X, y):
+
+    #
+    #       BARS
+    #
+
+    plt.figure(figsize=(20, 60))
+    train_split_vals = np.linspace(0.8, 0.97, 20)
+    windows_size = 20
     for i, train_split in enumerate(train_split_vals):
-        exp = Experiment(data=X, labels=y, test_size=train_split, wind_size=5)
-        exp.run()
+        exp = Experiment(data=X, labels=y, test_size=train_split, wind_size=windows_size)
+        try:
+            exp.run()
+        except:
+            print("Unexpected error:", sys.exc_info()[0])
+            print("Broke on %f" % train_split)
+            break
         scores = exp.scores["gestures"]
         names = scores.keys()
         results = scores.values()
-        plt.subplot(len(train_split_vals), 1, i+1)
+        plt.subplot(len(train_split_vals), 1, i + 1)
         plt.bar(range(len(results)), results, align='center', alpha=0.5)
         plt.xticks(range(len(names)), names)
         plt.ylabel('Score')
-        plt.title('Test size %.3f' % train_split + " Avg: %f" % np.average(results) + "Window size: 100")
-    plt.savefig('diff_test_size_winsize30.png')
+        plt.title('Test size %.3f' % train_split + " Avg: %f" % np.average(results) + "Window size: %d" % windows_size)
+    plt.savefig('./graphs/diff_test_size_bars_windsize%d.png' % windows_size)
     plt.show()
+
+    #
+    #       GRAPH
+    #
+
     finals = []
     for i, train_split in enumerate(train_split_vals):
-        exp = Experiment(data=X, labels=y, test_size=train_split, wind_size=30)
-        exp.run()
+        exp = Experiment(data=X, labels=y, test_size=train_split, wind_size=windows_size)
+        try:
+            exp.run()
+        except:
+            print("Unexpected error:", sys.exc_info()[0])
+            print("Broke on %f" % train_split)
+            break
         scores = exp.scores["gestures"]
         results = scores.values()
         finals.append(np.average(results))
@@ -132,24 +158,38 @@ def plot_results(res):
     plt.ylabel("Score")
     plt.xlabel("Test split")
     plt.title("Window size: 30")
-    plt.savefig('relation_winsize30.png')
+    plt.savefig('./graphs/relation_winsize30.png')
     plt.show()
+
+
+def window_size_test(X, y):
     lda_res = []
     log_res = []
-    wind_sizes = np.linspace(5,500, 20)
+    x_window_sizes = []
+    wind_sizes = np.linspace(1, 300, 100)
     for wind_size in wind_sizes:
-        exp = Experiment(data=X, labels=y, wind_size=wind_size)
-        exp.run()
+        exp = Experiment(data=X, labels=y, wind_size=wind_size, test_size=0.5)
+        try:
+            exp.run()
+        except:
+            print("Unexpected error:", sys.exc_info()[0])
+            break
         scores = exp.scores["models"]
         lda_res.append(scores["lda"])
         log_res.append(scores["log"])
-    plt.plot(wind_sizes, lda_res)
+        x_window_sizes.append(wind_size)
+    plt.plot(x_window_sizes, lda_res)
+    plt.ylim((min(lda_res), 1.1))
     plt.ylabel("LDA score")
     plt.xlabel("Window size")
-    plt.savefig('window_size_vs_score.png')
+    plt.savefig('./graphs/window_size_vs_ldascore.png')
     plt.show()
-
-
+    plt.plot(x_window_sizes, log_res)
+    plt.ylim((min(log_res) - 0.5, 1.1))
+    plt.ylabel("Logistic regression score")
+    plt.xlabel("Window size")
+    plt.savefig('./graphs/window_size_vs_logscore.png')
+    plt.show()
 
 
 if __name__ == '__main__':
