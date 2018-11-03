@@ -62,14 +62,14 @@ class Experiment:
 
     def train_test_validate(self):
         log_prediction = self.log_reg.predict(self.X_test)
-        gestures = {}
+        gestures = {"log":{}, "lda":{}}
         self.scores["gestures"] = gestures
         for i in range(len(self.data)):
             occurance = 0.0
             for j in range(len(log_prediction)):
                 if log_prediction[j] == self.y_test[j] and self.y_test[j] == i:
                     occurance += 1
-            self.scores["gestures"]['log_' + self.label_name[i]] = 0 if (self.y_test == i).sum() == 0 else float(occurance / ((self.y_test == i).sum()))
+            self.scores["gestures"]["log"]["log_" + self.label_name[i]] = 0 if (self.y_test == i).sum() == 0 else float(occurance / ((self.y_test == i).sum()))
 
         lda_prediction = self.lda.predict(self.X_test)
 
@@ -78,7 +78,7 @@ class Experiment:
             for j in range(len(log_prediction)):
                 if lda_prediction[j] == self.y_test[j] and self.y_test[j] == i:
                     occurance += 1
-            self.scores["gestures"]['lda_' + self.label_name[i]] = 0 if (self.y_test == i).sum() == 0 else float(occurance / ((self.y_test == i).sum()))
+            self.scores["gestures"]["lda"]["lda_" + self.label_name[i]] = 0 if (self.y_test == i).sum() == 0 else float(occurance / ((self.y_test == i).sum()))
 
     def preprocess(self):
         for key, emg in self.data.items():

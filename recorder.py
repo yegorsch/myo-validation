@@ -140,7 +140,8 @@ def train_split_test(X, y):
             print("Unexpected error:", sys.exc_info()[0])
             print("Broke on %f" % train_split)
             break
-        scores = exp.scores["gestures"]
+        scores = [d.items() for d in exp.scores["gestures"].values()]
+        scores = dict(scores[0] + scores[1])
         names = scores.keys()
         results = scores.values()
         plt.subplot(len(train_split_vals), 1, i + 1)
@@ -155,7 +156,8 @@ def train_split_test(X, y):
     #       GRAPH
     #
 
-    finals = []
+    finals_lda = []
+    finals_log = []
     for i, train_split in enumerate(train_split_vals):
         exp = Experiment(data=X, labels=y, test_size=train_split, wind_size=windows_size)
         try:
@@ -164,14 +166,24 @@ def train_split_test(X, y):
             print("Unexpected error:", sys.exc_info()[0])
             print("Broke on %f" % train_split)
             break
-        scores = exp.scores["gestures"]
-        results = scores.values()
-        finals.append(np.average(results))
-    plt.plot(train_split_vals, finals)
-    plt.ylabel("Score")
+        scores_lda = exp.scores["gestures"]["lda"]
+        scores_log = exp.scores["gestures"]["log"]
+        results_lda = scores_lda.values()
+        results_log = scores_log.values()
+        finals_lda.append(np.average(results_lda))
+        finals_log.append(np.average(results_log))
+    plt.plot(train_split_vals, finals_lda)
+    plt.ylabel("Performance")
     plt.xlabel("Test split")
-    plt.title("Window size: 30")
-    plt.savefig('./graphs/relation_winsize30.png')
+    plt.title(" LDA Window size: %d" % windows_size)
+    plt.savefig('./graphs/LDA_relation_windowsize%d.png' % windows_size)
+    plt.show()
+
+    plt.plot(train_split_vals, finals_log)
+    plt.ylabel("Performance")
+    plt.xlabel("Test split")
+    plt.title("Log. regression Window size: %d" % windows_size)
+    plt.savefig('./graphs/LOG_relation_windowsize%d.png' % windows_size)
     plt.show()
 
 
