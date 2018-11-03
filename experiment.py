@@ -53,7 +53,6 @@ class Experiment:
         self.train()  # Fit the models
         self.cross_validate() # Get cross validation scores
         self.train_test_validate() # Get individual gesture score
-        self.scores["variables"] = {"test_size": len(self.X_test), "train_size": len(self.X_train)}
 
     def cross_validate(self):
         scoresLda = cross_val_score(self.cross_lda, self.X_test, self.y_test, cv=None, scoring='accuracy')
@@ -105,6 +104,8 @@ class Experiment:
         self.y_test = y_test
         self.X_train = X_train
         self.y_train = y_train
+
+        self.scores["variables"] = {"test_size": len(self.X_test), "train_size": len(self.X_train)}
 
         self.lda.fit(X_train, y_train)
         self.log_reg.fit(X_train, y_train)

@@ -139,6 +139,7 @@ def train_split_test(X, y):
         except:
             print("Unexpected error:", sys.exc_info()[0])
             print("Broke on %f" % train_split)
+            print(exp.scores)
             break
         scores = [d.items() for d in exp.scores["gestures"].values()]
         scores = dict(scores[0] + scores[1])
@@ -165,6 +166,7 @@ def train_split_test(X, y):
         except:
             print("Unexpected error:", sys.exc_info()[0])
             print("Broke on %f" % train_split)
+            print(exp.scores)
             break
         scores_lda = exp.scores["gestures"]["lda"]
         scores_log = exp.scores["gestures"]["log"]
@@ -198,6 +200,7 @@ def window_size_test(X, y):
             exp.run()
         except:
             print("Unexpected error:", sys.exc_info()[0])
+            print(exp.scores)
             break
         scores = exp.scores["models"]
         lda_res.append(scores["lda"])
