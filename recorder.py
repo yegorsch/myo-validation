@@ -108,6 +108,19 @@ def plot_results(res):
     y = res[1]
     train_split_test(X, y)
     window_size_test(X, y)
+    generate_graph_markdown()
+
+
+def generate_graph_markdown():
+    from os import listdir
+    from os.path import isfile, join
+    path = "./graphs"
+    files = [f for f in listdir(path) if isfile(join(path, f))]
+    sample = "![graph](MMM)\n"
+    with open("./graphs/README.md", "w") as f:
+        for file in files:
+            if ".png" in file:
+                f.write(sample.replace("MMM", file))
 
 
 def train_split_test(X, y):
